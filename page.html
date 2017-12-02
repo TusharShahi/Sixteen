@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <title>Hello world</title>
+   </head>
+   <script src = "/socket.io/socket.io.js"></script>
+   
+   <script>
+      var socket = io();
+   </script>
+   <body>
+
+   		<h1>Hello world</h1>
+
+   		<button onclick="send()">SEND MESSAGE</button>
+
+   		<input type="text" name="roomname" id="roomno">
+   		<button onclick="join()">JOIN ROOM</button>
+   
+		
+		<button onclick="create()">CREATE ROOM</button>
+
+		<div id="deal">
+		</div>
+
+   </body>
+</html>

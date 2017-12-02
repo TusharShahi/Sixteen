@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <title>Hello world</title>
+   </head>
+   <style>
+body,html
+{
+   padding: 20px;
+   text-align: center;
+margin: 0;
+}
+.deck
+{
+   display: inline-block;
+   width: 600px;
+   color: #fff;
+   background-color: #212121;
+      margin: 10px;
+}
+
+
+.deck span
+{
+display: inline-block;
+padding: 5px;
+background-color: #fff;
+color: #000;
+margin: 5px;
+}
+      </style>
+   <script src = "/socket.io/socket.io.js"></script>
+   
+   <body>
+
+   		<h1>Sixteen</h1>
+         <input id="username" type="text">
+
+
+   		<input type="text" name="roomname" id="roomno">
+   		<button onclick="join()">JOIN ROOM</button>
+   
+		
+      <div id="decklist">
+            
+
+
+
+      </div>
+
+
+
+
+		<button onclick="create()">CREATE ROOM</button>
+
+		<div id="playersarea">
+
+      </div>
+      <div id="deal">
+		</div>
+
+
+      <div id="yourchance">
+
+      </div>
+   </body>
+   <script>
+         prevdeckid = null;
+
+      var socket = io();
+      chance = 0;
+      sentid = 6;
+      var join = function()
+      {
+         if(document.getElementById('roomno').value && document.getElementById('username').value)
+            socket.emit('join',{roomname : document.getElementById('roomno').value, username:document.getElementById('username').value} );
+         else
+               {       if(document.getElementById('roomno'))
+                              alert('Please add name');
+                        else
+                        {
+                                 alert('Please add roomno');
+                        }
+      }
+
+
+      var create = function()
+      {
+         if(prevdeckid && document.getElementById('username').value)
+   socket.emit('create',{decktype: prevdeckid, text : 'create a room', username: document.getElementById('username').value});
+      else
+      {
+         if(prevdeckid)
+         alert('Please choose a deck');
+         else
+            alert('Please add name');
+      }
+      }
+  
+    var deal = function()
+      {
+         socket.emit('deal','Start dealing the cards');
+      }
+  
+      var sendcard = function(x)
+      {
+
+         if(chance==1)
+         {
+            chance = 0;
+
+            sentid = x[x.length - 1];
+            value = document.getElementById(x).textContent;   
+            console.log('We are sending');
+            console.log(value);            
+            element = document.getElementById(x);
+            
+            element.parentNode.removeChild(element);
+               document.getElementById('yourchance').innerHTML = '';
+         
+         var list = document.getElementById('cardsholder').childNodes;
+         var flag=1;
+         console.log(list);
+           if(list.length == 4)
+            {  win = 1;
+               var i;
+               for(i=1;i<4;i++)
+               {
+                  if(list[i].textContent!=list[i-1].textContent)
+                        {
+                           win = 0;
+                           flag = 2;
+                           break;
+                        }
+               }
+               if(win==1)
+               {
+                  flag = 0;
+                  console.log('victory');
+                  socket.emit('victory','I have won');
+                  document.getElementsByTagName('body')[0].innerHTML += 'Congratulations! You have won';
+               }
+
+            }
+            if(flag>0)
+            {
+               socket.emit('next',value);
+            }
+         }
+
+      }
+
+
+      var choosedeck = function(deckid)
+      {    console.log(deckid);
+         console.log("clicked");
+            if(prevdeckid)
+            {
+               document.getElementById(prevdeckid).style.backgroundColor = "#212121";
+            }
+
+            document.getElementById(deckid).style.backgroundColor = 'green';
+            prevdeckid = deckid;   
+      }
+
+
+      socket.on('successfuljoin',function(data)
+      {
+         keys = Object.keys(data);
+         console.log(keys);
+         for(i=0;i<keys.length;i++)
+      {    code ='';
+         code += "<div class='deck' onclick='choosedeck(this.id)'" + " id='" + keys[i] + "'><h1>" + keys[i] + "</h1>";
+            for(j=0;j<4;j++)
+            {
+                code += "<span>" + data[keys[i]][j] + "</span>";
+            }
+      
+            code += "</div>";
+
+            document.getElementById('decklist').innerHTML += code;
+      }
+      });
+
+      socket.on('limitexceed',function(data)
+      {
+            alert(data);
+      });
+
+      socket.on('roomdoesnotexists',function(data)
+      {
+         alert(data.roomno + '   ' + data.text);
+
+      });
+
+
+      socket.on('joinedroom')
+      socket.on('createdroom',function(data)
+      {
+         alert(data.roomid + ' room has been craeted with deck type ' + data.decktype);
+
+      });
+
+      socket.on('gameisready',function(data)
+      {
+
+         alert(data);
+         document.getElementsByTagName('body')[0].innerHTML += 'The game is ready to start'; 
+      });
+
+
+      socket.on('adddealbutton',function()
+      {
+         document.getElementById('deal').innerHTML = '<button onclick="deal()">DEAL</button>';
+      });
+
+      socket.on('gamecanbestarted',function()
+      {
+                     document.getElementsByTagName('body')[0].innerHTML += 'The dealing has been done'; 
+                     socket.emit('gamecanbestarted','game has been started');
+      }); 
+
+      socket.on('letsgo',function(data)
+      {
+         var i;
+         document.getElementsByTagName('body')[0].innerHTML += '<div id="cardsholder">'; 
+         
+         for(i=0;i<data.length;i++)
+         {
+         document.getElementById('cardsholder').innerHTML += '<button id="button' + i + '" onclick="sendcard(this.id)">' + data[i] + '</button>'; 
+         }
+
+           document.getElementsByTagName('body')[0].innerHTML += '</div>'; 
+
+      });
+
+      socket.on('takefourpass',function(data)
+      {
+            document.getElementsByTagName('body')[0].innerHTML += 'Humpe deal aya h';
+         socket.emit('takefourpass',data);
+
+      });
+
+      socket.on('yourchance',function(data)
+      {      //     document.getElementsByTagName('body')[0].innerHTML += '<h3 id="chance">IT IS YOUR CHANCE RIGHT NOW</h3>';
+        // console.log(document.getElementById('cardsholder'));
+       //  console.log(document.getElementById('cardsholder').childNodes);
+          document.getElementById('yourchance').innerHTML = '<h3 id="chance">Your Turn!</h3>';
+       
+          chance = 1;
+        // document.getElementsByTagName('body')[0].innerHTML += '<h3 id="chance">IT IS YOUR CHANCE RIGHT NOW</h3>';
+         if(data.card)
+         {
+         console.log('we have received a card');
+         console.log(data.card);
+            document.getElementById('cardsholder').innerHTML += '<button id="button' + sentid + '" onclick="sendcard(this.id)">' + data.card + '</button>'; 
+         }
+         else
+         {
+          console.log(document.getElementById('cardsholder'));
+          console.log(document.getElementById('cardsholder').childNodes);
+              var list = document.getElementById('cardsholder').childNodes;
+            
+
+            if(list.length == 4)
+            {  win = 1;
+               var i;
+               for(i=1;i<4;i++)
+               {
+                  if(list[i].textContent!=list[i-1].textContent)
+                        {
+                           win = 0;
+                           break;
+                        }
+               }
+               if(win==1)
+               {
+                  socket.emit('victory','I have won');
+               }
+            }
+         }
+
+      });
+
+      socket.on('gameover',function(data)
+      {
+         document.getElementsByTagName('body')[0].innerHTML += '<h2>THE GAME IS OVER</h2>'
+      });
+
+
+   </script>
+
+
+</html>
